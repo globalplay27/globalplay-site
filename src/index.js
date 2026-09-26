@@ -199,6 +199,15 @@ async function handleSetup(request, env) {
 
 async function handleLogin(request, env) {
   await ensureAuthTables(env);
+
+  const adminCount = await env.DB.prepare(
+    "SELECT COUNT(*) AS total FROM admins"
+  ).first();
+
+  if (Number(adminCount?.total || 0) === 0) {
+    return redirect(request, "/setup");
+  }
+
   const currentAdmin = await getLoggedAdmin(request, env);
   if (currentAdmin) return redirect(request, "/admin");
 
