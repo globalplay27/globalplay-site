@@ -801,13 +801,27 @@ async function adminDashboard(env, admin) {
           <span class="stat-help">Data considerada: horário de Brasília</span>
         </div>
         <div class="stat-card">
+          <span class="stat-label">Ontem</span>
+          <strong class="stat-number">${stats.yesterday.toLocaleString("pt-BR")}</strong>
+          <span class="stat-help">Acessos registrados no dia anterior</span>
+        </div>
+        <div class="stat-card">
           <span class="stat-label">Últimos 7 dias</span>
           <strong class="stat-number">${stats.last7.toLocaleString("pt-BR")}</strong>
           <span class="stat-help">Soma dos acessos dos últimos sete dias</span>
         </div>
+        <div class="stat-card">
+          <span class="stat-label">Últimos 30 dias</span>
+          <strong class="stat-number">${stats.last30.toLocaleString("pt-BR")}</strong>
+          <span class="stat-help">Soma dos acessos dos últimos trinta dias</span>
+        </div>
       </div>
 
       <div class="cards">
+        <a class="panel-card link-card visits-highlight" href="/admin/visits">
+          <h3>📊 Visitas</h3>
+          <p>Ver histórico diário, hoje, ontem, 7 dias, 30 dias e total.</p>
+        </a>
         <a class="panel-card link-card" href="/admin/plans">
           <h3>Planos</h3>
           <p>Editar preços, períodos, telas e descrições.</p>
@@ -885,9 +899,19 @@ async function visitsPage(env, admin) {
           <span class="stat-help">Horário de Brasília</span>
         </div>
         <div class="stat-card">
+          <span class="stat-label">Ontem</span>
+          <strong class="stat-number">${stats.yesterday.toLocaleString("pt-BR")}</strong>
+          <span class="stat-help">Dia anterior</span>
+        </div>
+        <div class="stat-card">
           <span class="stat-label">Últimos 7 dias</span>
           <strong class="stat-number">${stats.last7.toLocaleString("pt-BR")}</strong>
           <span class="stat-help">Soma dos últimos sete dias</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Últimos 30 dias</span>
+          <strong class="stat-number">${stats.last30.toLocaleString("pt-BR")}</strong>
+          <span class="stat-help">Soma dos últimos trinta dias</span>
         </div>
       </div>
 
@@ -1173,7 +1197,7 @@ function adminLayout(title, admin, content) {
 
 function adminCss() {
   return `
-    *{box-sizing:border-box} body{margin:0;background:#081426;color:#fff;font-family:Arial,Helvetica,sans-serif}.admin-shell{min-height:100vh;display:flex}aside{width:240px;background:#05101f;border-right:1px solid #203652;padding:30px 20px;position:fixed;inset:0 auto 0 0}.admin-brand{font-size:23px;font-weight:900;margin-bottom:28px}.admin-brand span{color:#e71c39}aside nav a{display:block;color:#cad6e8;padding:12px;border-radius:8px;text-decoration:none;margin-bottom:4px}aside nav a:hover{background:#12243e}.admin-email{position:absolute;bottom:25px;left:20px;right:20px;color:#6f86a4;font-size:12px;word-break:break-all}main{margin-left:240px;flex:1;padding:42px;max-width:1500px}.admin-subtitle,.help{color:#91a5bf;line-height:1.6}.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin:26px 0 8px}.stat-card{background:linear-gradient(145deg,#122744,#0b1a30);border:1px solid #315b8d;border-radius:16px;padding:24px;box-shadow:0 12px 30px rgba(0,0,0,.18)}.stat-label{display:block;color:#9fb2ca;font-size:14px;font-weight:800;text-transform:uppercase;letter-spacing:.5px}.stat-number{display:block;font-size:42px;line-height:1.1;margin:10px 0 8px;color:#fff}.stat-help{display:block;color:#7188a6;font-size:12px;line-height:1.45}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:20px;margin-top:28px}.panel-card,.edit-card{background:#102039;border:1px solid #24466f;border-radius:14px;padding:24px}.link-card{text-decoration:none;color:#fff;transition:.15s}.link-card:hover{transform:translateY(-2px);border-color:#3b70aa}.panel-card p{color:#9fb2ca;line-height:1.55}.edit-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:20px;margin-top:18px}.edit-card.compact{max-width:650px}.edit-card.wide{max-width:900px}label{display:block;margin:15px 0 7px;color:#c0cfe2;font-size:14px}input,textarea{width:100%;padding:13px 14px;border-radius:8px;border:1px solid #315276;background:#07101f;color:#fff;outline:none}textarea{min-height:110px;resize:vertical}button{width:100%;margin-top:18px;padding:14px;border:0;border-radius:8px;background:#df1833;color:#fff;font-weight:900;cursor:pointer}.danger{background:#5e1722}.delete-form{margin-top:-8px}.checkbox-row{display:flex;align-items:center;gap:9px}.checkbox-row input{width:auto}.section-gap{margin-top:42px}.saved-message,.error-message{padding:14px 16px;border-radius:9px;margin:20px 0}.saved-message{background:#123d2a;border:1px solid #22764b;color:#91efb9}.error-message{background:#551522;border:1px solid #a82c42;color:#ffd0d8}.page-heading-row{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}.refresh-btn{display:inline-block;text-decoration:none;background:#1f5f9d;border:1px solid #3c78b6;color:#fff;font-weight:900;padding:12px 18px;border-radius:9px}.visits-history{max-width:900px}.table-wrap{overflow-x:auto}.visits-table{width:100%;border-collapse:collapse;margin-top:12px}.visits-table th,.visits-table td{text-align:left;padding:14px 12px;border-bottom:1px solid #24466f}.visits-table th{color:#91a5bf;font-size:13px;text-transform:uppercase;letter-spacing:.5px}.visits-table td{color:#e6eef9}.empty-table{text-align:center!important;color:#91a5bf!important;padding:28px!important}.file-input{padding:10px;background:#081426;border:1px dashed #3d638f;cursor:pointer}.file-input::file-selector-button{border:0;border-radius:7px;padding:9px 12px;margin-right:10px;background:#235c96;color:#fff;font-weight:800;cursor:pointer}.media-editor{margin-top:24px;padding-top:20px;border-top:1px solid #24466f}.media-preview{display:flex;align-items:center;justify-content:center;min-height:110px;margin:10px 0 14px;padding:12px;background:#081426;border:1px solid #24466f;border-radius:10px;overflow:hidden}.media-preview img{display:block;max-width:100%;max-height:180px;object-fit:contain;border-radius:8px}.media-preview.banner img{width:100%;max-height:260px;object-fit:cover}.media-preview.empty{color:#6f86a4;font-size:13px}.remove-image-row{margin-top:12px;color:#ffb8c3}.upload-status.processing{color:#ffd37a}.upload-status.ready{color:#91efb9}.upload-status.error{color:#ff9aaa}button[disabled]{opacity:.55;cursor:not-allowed}@media(max-width:780px){aside{position:static;width:100%;height:auto}.admin-shell{display:block}.admin-email{position:static;margin-top:20px}main{margin-left:0;padding:25px}.page-heading-row{display:block}.refresh-btn{margin-top:8px}}
+    *{box-sizing:border-box} body{margin:0;background:#081426;color:#fff;font-family:Arial,Helvetica,sans-serif}.admin-shell{min-height:100vh;display:flex}aside{width:240px;background:#05101f;border-right:1px solid #203652;padding:30px 20px;position:fixed;inset:0 auto 0 0}.admin-brand{font-size:23px;font-weight:900;margin-bottom:28px}.admin-brand span{color:#e71c39}aside nav a{display:block;color:#cad6e8;padding:12px;border-radius:8px;text-decoration:none;margin-bottom:4px}aside nav a:hover{background:#12243e}.admin-email{position:absolute;bottom:25px;left:20px;right:20px;color:#6f86a4;font-size:12px;word-break:break-all}main{margin-left:240px;flex:1;padding:42px;max-width:1500px}.admin-subtitle,.help{color:#91a5bf;line-height:1.6}.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin:26px 0 8px}.stat-card{background:linear-gradient(145deg,#122744,#0b1a30);border:1px solid #315b8d;border-radius:16px;padding:24px;box-shadow:0 12px 30px rgba(0,0,0,.18)}.stat-label{display:block;color:#9fb2ca;font-size:14px;font-weight:800;text-transform:uppercase;letter-spacing:.5px}.stat-number{display:block;font-size:42px;line-height:1.1;margin:10px 0 8px;color:#fff}.stat-help{display:block;color:#7188a6;font-size:12px;line-height:1.45}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:20px;margin-top:28px}.panel-card,.edit-card{background:#102039;border:1px solid #24466f;border-radius:14px;padding:24px}.link-card{text-decoration:none;color:#fff;transition:.15s}.link-card:hover{transform:translateY(-2px);border-color:#3b70aa}.visits-highlight{border-color:#2f78bd;background:linear-gradient(145deg,#15385f,#102039)}.panel-card p{color:#9fb2ca;line-height:1.55}.edit-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:20px;margin-top:18px}.edit-card.compact{max-width:650px}.edit-card.wide{max-width:900px}label{display:block;margin:15px 0 7px;color:#c0cfe2;font-size:14px}input,textarea{width:100%;padding:13px 14px;border-radius:8px;border:1px solid #315276;background:#07101f;color:#fff;outline:none}textarea{min-height:110px;resize:vertical}button{width:100%;margin-top:18px;padding:14px;border:0;border-radius:8px;background:#df1833;color:#fff;font-weight:900;cursor:pointer}.danger{background:#5e1722}.delete-form{margin-top:-8px}.checkbox-row{display:flex;align-items:center;gap:9px}.checkbox-row input{width:auto}.section-gap{margin-top:42px}.saved-message,.error-message{padding:14px 16px;border-radius:9px;margin:20px 0}.saved-message{background:#123d2a;border:1px solid #22764b;color:#91efb9}.error-message{background:#551522;border:1px solid #a82c42;color:#ffd0d8}.page-heading-row{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}.refresh-btn{display:inline-block;text-decoration:none;background:#1f5f9d;border:1px solid #3c78b6;color:#fff;font-weight:900;padding:12px 18px;border-radius:9px}.visits-history{max-width:900px}.table-wrap{overflow-x:auto}.visits-table{width:100%;border-collapse:collapse;margin-top:12px}.visits-table th,.visits-table td{text-align:left;padding:14px 12px;border-bottom:1px solid #24466f}.visits-table th{color:#91a5bf;font-size:13px;text-transform:uppercase;letter-spacing:.5px}.visits-table td{color:#e6eef9}.empty-table{text-align:center!important;color:#91a5bf!important;padding:28px!important}.file-input{padding:10px;background:#081426;border:1px dashed #3d638f;cursor:pointer}.file-input::file-selector-button{border:0;border-radius:7px;padding:9px 12px;margin-right:10px;background:#235c96;color:#fff;font-weight:800;cursor:pointer}.media-editor{margin-top:24px;padding-top:20px;border-top:1px solid #24466f}.media-preview{display:flex;align-items:center;justify-content:center;min-height:110px;margin:10px 0 14px;padding:12px;background:#081426;border:1px solid #24466f;border-radius:10px;overflow:hidden}.media-preview img{display:block;max-width:100%;max-height:180px;object-fit:contain;border-radius:8px}.media-preview.banner img{width:100%;max-height:260px;object-fit:cover}.media-preview.empty{color:#6f86a4;font-size:13px}.remove-image-row{margin-top:12px;color:#ffb8c3}.upload-status.processing{color:#ffd37a}.upload-status.ready{color:#91efb9}.upload-status.error{color:#ff9aaa}button[disabled]{opacity:.55;cursor:not-allowed}@media(max-width:780px){aside{position:static;width:100%;height:auto}.admin-shell{display:block}.admin-email{position:static;margin-top:20px}main{margin-left:0;padding:25px}.page-heading-row{display:block}.refresh-btn{margin-top:8px}}
   `;
 }
 
@@ -1533,24 +1557,35 @@ async function getVisitStats(env) {
     const today = getBrazilDateKey(new Date());
     const start7 = getBrazilDateKey(new Date(Date.now() - 6 * 24 * 60 * 60 * 1000));
 
-    const [totalRow, todayRow, last7Row] = await Promise.all([
+    const yesterday = getBrazilDateKey(new Date(Date.now() - 24 * 60 * 60 * 1000));
+    const start30 = getBrazilDateKey(new Date(Date.now() - 29 * 24 * 60 * 60 * 1000));
+
+    const [totalRow, todayRow, yesterdayRow, last7Row, last30Row] = await Promise.all([
       env.DB.prepare("SELECT COALESCE(SUM(visits), 0) AS total FROM analytics_daily").first(),
       env.DB.prepare("SELECT COALESCE(visits, 0) AS total FROM analytics_daily WHERE day = ?")
         .bind(today)
         .first(),
+      env.DB.prepare("SELECT COALESCE(visits, 0) AS total FROM analytics_daily WHERE day = ?")
+        .bind(yesterday)
+        .first(),
       env.DB.prepare("SELECT COALESCE(SUM(visits), 0) AS total FROM analytics_daily WHERE day >= ? AND day <= ?")
         .bind(start7, today)
+        .first(),
+      env.DB.prepare("SELECT COALESCE(SUM(visits), 0) AS total FROM analytics_daily WHERE day >= ? AND day <= ?")
+        .bind(start30, today)
         .first(),
     ]);
 
     return {
       total: Number(totalRow?.total || 0),
       today: Number(todayRow?.total || 0),
+      yesterday: Number(yesterdayRow?.total || 0),
       last7: Number(last7Row?.total || 0),
+      last30: Number(last30Row?.total || 0),
     };
   } catch (error) {
     console.error("Falha ao carregar estatísticas:", error);
-    return { total: 0, today: 0, last7: 0 };
+    return { total: 0, today: 0, yesterday: 0, last7: 0, last30: 0 };
   }
 }
 
