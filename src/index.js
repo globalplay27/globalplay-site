@@ -3,6 +3,7 @@ const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
 
 const SITE_ORIGIN = "https://globalplay.fun";
 const MAX_IMAGE_BYTES = 1_500_000; // limite seguro para uma imagem no D1 (1,5 MB)
+let coreSchemaPromise = null;
 
 export default {
   async fetch(request, env) {
@@ -41,6 +42,8 @@ export default {
 
         return textResponse(body, "application/xml; charset=UTF-8", 300);
       }
+
+      await ensureCoreTables(env);
 
       if (pathname.startsWith("/media/")) {
         return serveMedia(pathname, env);
@@ -1290,6 +1293,109 @@ function simpleMessagePage(title, text, href, buttonText, success = false) {
 /* =========================
    BANCO / UTILIDADES
 ========================= */
+
+async function ensureCoreTables(env) {
+  if (coreSchemaPromise) return coreSchemaPromise;
+
+  coreSchemaPromise = (async () => {
+    await env.DB.prepare(`
+      CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL DEFAULT ''
+      )
+    `).run();
+
+    await env.DB.prepare(`
+      CREATE TABLE IF NOT EXISTS plans (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        category TEXT NOT NULL,
+        title TEXT NOT NULL,
+        price TEXT NOT NULL,
+        screens TEXT NOT NULL DEFAULT '',
+        description TEXT NOT NULL DEFAULT '',
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        active INTEGER NOT NULL DEFAULT 1
+      )
+    `).run();
+
+    await env.DB.prepare(`
+      CREATE TABLE IF NOT EXISTS apps (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        image_url TEXT NOT NULL DEFAULT '',
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        active INTEGER NOT NULL DEFAULT 1
+      )
+    `).run();
+
+    await env.DB.prepare(`
+      CREATE TABLE IF NOT EXISTS faq (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        question TEXT NOT NULL,
+        answer TEXT NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        active INTEGER NOT NULL DEFAULT 1
+      )
+    `).run();
+
+    await ensureAuthTables(env);
+    await ensureVisitTable(env);
+    await ensureMediaTable(env);
+
+    const defaults = [
+      ["site_name", "Global Play"],
+      ["whatsapp", "5521964816185"],
+      ["hero_title", "Global Play: filmes, séries e entretenimento por streaming"],
+      ["hero_text", "Conheça os planos da Global Play para assistir a filmes, séries e TV ao vivo. Compare opções e consulte pelo WhatsApp a compatibilidade com Smart TV, celular, tablet ou computador."],
+      ["seo_title", "Global Play | Streaming, Filmes, Séries e Entretenimento"],
+      ["seo_description", "Conheça a Global Play: streaming, filmes, séries e entretenimento. Confira planos, dispositivos compatíveis e tire suas dúvidas pelo WhatsApp."]
+    ];
+    for (const [key, value] of defaults) {
+      await env.DB.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)")
+        .bind(key, value)
+        .run();
+    }
+
+    const planCount = await env.DB.prepare("SELECT COUNT(*) AS total FROM plans").first();
+    if (Number(planCount?.total || 0) === 0) {
+      const plans = [
+        ["cliente", "1 mês", "29,99", "1 tela", "Acesso por 1 mês.", 1],
+        ["cliente", "2 meses", "49,99", "1 tela", "Acesso por 2 meses.", 2],
+        ["cliente", "3 meses", "69,99", "1 tela", "Acesso por 3 meses.", 3],
+        ["revendedor", "ADM", "599,99", "", "Plano ADM para operação de revenda.", 10],
+        ["revendedor", "ULTRA", "199,00", "", "Plano ULTRA para operação de revenda.", 11],
+        ["revendedor", "MASTER", "44,99", "", "Plano MASTER para operação de revenda.", 12]
+      ];
+      for (const row of plans) {
+        await env.DB.prepare(`
+          INSERT INTO plans (category, title, price, screens, description, sort_order, active)
+          VALUES (?, ?, ?, ?, ?, ?, 1)
+        `).bind(...row).run();
+      }
+    }
+
+    const faqCount = await env.DB.prepare("SELECT COUNT(*) AS total FROM faq").first();
+    if (Number(faqCount?.total || 0) === 0) {
+      const faq = [
+        ["Como funciona a Global Play?", "Escolha um plano e fale com o atendimento pelo WhatsApp para receber as orientações de acesso.", 1],
+        ["Em quais dispositivos posso usar?", "Consulte a compatibilidade com Smart TV, celular, tablet, TV Box ou computador antes da contratação.", 2],
+        ["Como falar com o suporte?", "Use os botões de WhatsApp disponíveis no site.", 3],
+        ["Quais planos estão disponíveis?", "Os planos e valores atualizados aparecem nesta página e também podem ser confirmados pelo atendimento.", 4]
+      ];
+      for (const row of faq) {
+        await env.DB.prepare(`
+          INSERT INTO faq (question, answer, sort_order, active)
+          VALUES (?, ?, ?, 1)
+        `).bind(...row).run();
+      }
+    }
+  })().catch((error) => {
+    coreSchemaPromise = null;
+    throw error;
+  });
+
+  return coreSchemaPromise;
+}
 
 async function ensureAuthTables(env) {
   await env.DB.prepare(`
