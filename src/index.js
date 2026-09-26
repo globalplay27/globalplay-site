@@ -10,8 +10,9 @@ export default {
     const pathname = normalizePathname(url.pathname);
 
     try {
-      if (pathname === "/favicon.ico") {
-        return new Response(null, { status: 204 });
+      if (pathname === "/favicon.ico" || pathname === "/favicon.svg") {
+        const icon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#07101e"/><path d="M14 17h17c11 0 18 5 18 15s-7 15-18 15H25v10H14V17zm11 9v12h6c5 0 7-2 7-6s-2-6-7-6h-6z" fill="#fff"/><circle cx="50" cy="14" r="7" fill="#e71c39"/></svg>`;
+        return textResponse(icon, "image/svg+xml; charset=UTF-8", 86400);
       }
 
       // Arquivo lido pelos mecanismos de busca.
@@ -35,8 +36,6 @@ export default {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>${escapeXml(SITE_ORIGIN + "/")}</loc>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
   </url>
 </urlset>`;
 
@@ -734,6 +733,7 @@ async function handleSeo(request, env, admin) {
     const form = await request.formData();
     await setSetting(env, "seo_title", String(form.get("seo_title") || "").trim());
     await setSetting(env, "seo_description", String(form.get("seo_description") || "").trim());
+    await setSetting(env, "seo_social_image", safeUrl(form.get("seo_social_image") || ""));
     return redirect(request, "/admin/seo?saved=1");
   }
 
@@ -759,12 +759,17 @@ function seoPage(admin, settings, saved) {
         <label>Descrição SEO</label>
         <textarea name="seo_description" maxlength="180">${escapeHtml(settings.seo_description || "")}</textarea>
 
+        <label>Imagem para compartilhamento (opcional)</label>
+        <input name="seo_social_image" value="${escapeHtml(settings.seo_social_image || "")}" placeholder="https://...">
+        <p class="help">Usada por WhatsApp, Facebook, X e outros previews. Se ficar vazia, o banner principal será usado.</p>
+
         <button type="submit">SALVAR SEO</button>
       </form>
 
       <div class="panel-card section-gap">
-        <h3>Sitemap</h3>
-        <p>Seu Worker já responde automaticamente em <strong>/sitemap.xml</strong>.</p>
+        <h3>SEO técnico</h3>
+        <p><strong>Sitemap:</strong> /sitemap.xml · <strong>Robots:</strong> /robots.txt · <strong>Canonical:</strong> https://globalplay.fun/</p>
+        <p class="help">A página pública também envia Open Graph, Twitter Card e dados estruturados Schema.org automaticamente.</p>
       </div>
     `
   );
@@ -944,9 +949,51 @@ async function homePage(env, request) {
   const resellerPlans = plans.filter((p) => p.category === "revendedor");
 
   const whatsapp = String(settings.whatsapp || "5521964816185").replace(/\D/g, "");
-  const origin = new URL(request.url).origin;
   const logoUrl = safeUrl(settings.logo_url || "");
   const heroBannerUrl = safeUrl(settings.hero_banner_url || "");
+  const seoTitle = String(settings.seo_title || "Global Play | Streaming, Filmes, Séries e Entretenimento").trim();
+  const seoDescription = String(
+    settings.seo_description ||
+    "Conheça a Global Play: streaming, filmes, séries e entretenimento. Confira planos, dispositivos compatíveis e tire suas dúvidas pelo WhatsApp."
+  ).trim();
+  const canonicalUrl = SITE_ORIGIN + "/";
+  const socialImage = safeUrl(settings.seo_social_image || "") || heroBannerUrl || logoUrl;
+  const structuredData = JSON.stringify({
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": SITE_ORIGIN + "/#organization",
+        name: String(settings.site_name || "Global Play"),
+        url: canonicalUrl,
+        ...(logoUrl ? { logo: logoUrl } : {}),
+        contactPoint: [{
+          "@type": "ContactPoint",
+          contactType: "customer service",
+          telephone: "+" + whatsapp,
+          availableLanguage: ["pt-BR"]
+        }]
+      },
+      {
+        "@type": "WebSite",
+        "@id": SITE_ORIGIN + "/#website",
+        url: canonicalUrl,
+        name: String(settings.site_name || "Global Play"),
+        inLanguage: "pt-BR",
+        publisher: { "@id": SITE_ORIGIN + "/#organization" }
+      },
+      {
+        "@type": "Service",
+        "@id": SITE_ORIGIN + "/#service",
+        name: "Global Play",
+        serviceType: "Streaming e entretenimento digital",
+        areaServed: { "@type": "Country", name: "Brasil" },
+        provider: { "@id": SITE_ORIGIN + "/#organization" },
+        url: canonicalUrl,
+        description: seoDescription
+      }
+    ]
+  }).replace(/</g, "\\u003c");
 
   const planCard = (plan) => {
     const message = encodeURIComponent(
@@ -970,9 +1017,24 @@ async function homePage(env, request) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>${escapeHtml(settings.seo_title || "Global Play | Entretenimento e Streaming Online")}</title>
-  <meta name="description" content="${escapeHtml(settings.seo_description || "Conheça a Global Play e confira opções de entretenimento online, planos, aplicativos e suporte.")}">
-  <link rel="canonical" href="${escapeHtml(origin + "/")}">
+  <title>${escapeHtml(seoTitle)}</title>
+  <meta name="description" content="${escapeHtml(seoDescription)}">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <meta name="theme-color" content="#07101e">
+  <link rel="canonical" href="${escapeHtml(canonicalUrl)}">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="pt_BR">
+  <meta property="og:site_name" content="${escapeHtml(settings.site_name || "Global Play")}">
+  <meta property="og:title" content="${escapeHtml(seoTitle)}">
+  <meta property="og:description" content="${escapeHtml(seoDescription)}">
+  <meta property="og:url" content="${escapeHtml(canonicalUrl)}">
+  ${socialImage ? `<meta property="og:image" content="${escapeHtml(socialImage)}">` : ""}
+  <meta name="twitter:card" content="${socialImage ? "summary_large_image" : "summary"}">
+  <meta name="twitter:title" content="${escapeHtml(seoTitle)}">
+  <meta name="twitter:description" content="${escapeHtml(seoDescription)}">
+  ${socialImage ? `<meta name="twitter:image" content="${escapeHtml(socialImage)}">` : ""}
+  <script type="application/ld+json">${structuredData}</script>
   <style>${publicCss()}</style>
 </head>
 <body>
@@ -993,8 +1055,8 @@ async function homePage(env, request) {
   <section class="hero" ${heroBannerUrl ? `style="background-image:linear-gradient(90deg,rgba(2,8,20,.96),rgba(2,8,20,.55)),url('${escapeCssUrl(heroBannerUrl)}')"` : ""}>
     <div class="hero-copy">
       <div class="eyebrow">GLOBAL PLAY</div>
-      <h1>${escapeHtml(settings.hero_title || "Entretenimento. Do seu jeito.")}</h1>
-      <p>${escapeHtml(settings.hero_text || "Filmes, séries e TV ao vivo em uma experiência simples e preparada para diferentes dispositivos.")}</p>
+      <h1>${escapeHtml(settings.hero_title || "Global Play: filmes, séries e entretenimento por streaming")}</h1>
+      <p>${escapeHtml(settings.hero_text || "Conheça os planos da Global Play para assistir a filmes, séries e TV ao vivo. Compare opções e consulte pelo WhatsApp a compatibilidade com Smart TV, celular, tablet ou computador.")}</p>
       <div class="hero-actions">
         <a class="primary-btn" href="#planos">CONHECER PLANOS</a>
         <a class="ghost-btn" href="https://wa.me/${whatsapp}" target="_blank" rel="noopener">FALAR NO WHATSAPP</a>
@@ -1023,7 +1085,7 @@ async function homePage(env, request) {
       <p>Confira as opções cadastradas no painel.</p>
     </div>
     <div class="apps-grid">
-      ${apps.map((app) => `<div class="app-chip">${app.image_url ? `<img src="${escapeHtml(safeUrl(app.image_url))}" alt="">` : ""}<span>${escapeHtml(app.name)}</span></div>`).join("")}
+      ${apps.map((app) => `<div class="app-chip">${app.image_url ? `<img src="${escapeHtml(safeUrl(app.image_url))}" alt="${escapeHtml(app.name)}">` : ""}<span>${escapeHtml(app.name)}</span></div>`).join("")}
     </div>
   </section>
 
@@ -1082,6 +1144,7 @@ function adminLayout(title, admin, content) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>${escapeHtml(title)} | Painel Global Play</title>
+  <meta name="robots" content="noindex,nofollow,noarchive">
   <style>${adminCss()}</style>
 </head>
 <body>
@@ -1165,6 +1228,7 @@ function authLayout(title, content) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>${escapeHtml(title)} | Global Play</title>
+  <meta name="robots" content="noindex,nofollow,noarchive">
   <style>
     *{box-sizing:border-box} body{margin:0;background:#07101e;color:#fff;font-family:Arial,Helvetica,sans-serif}.center{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:25px}.auth-card{width:390px;max-width:100%;background:#0d1b30;padding:35px;border-radius:18px;border:1px solid #213c61;box-shadow:0 20px 60px rgba(0,0,0,.35)}h1{text-align:center;margin-top:0}h1 span{color:#e71c39}h2{text-align:center}p,small{color:#96a8c1;line-height:1.5}label{display:block;margin-top:17px;margin-bottom:7px;font-size:14px}input{width:100%;padding:14px;border-radius:8px;border:1px solid #29496f;background:#07101e;color:white;outline:none}button,.button{display:block;width:100%;border:0;background:#df1833;color:white;padding:15px;border-radius:8px;font-weight:800;margin-top:22px;cursor:pointer;text-decoration:none;text-align:center}.success{font-size:55px;text-align:center;color:#22c66c}.error-message{background:#551522;border:1px solid #a82c42;padding:12px;border-radius:8px;margin:15px 0;color:#ffd0d8}
   </style>
