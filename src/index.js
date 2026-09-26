@@ -49,6 +49,15 @@ export default {
         return serveMedia(pathname, env);
       }
 
+      if (pathname === "/__diag/admin-state") {
+        await ensureCoreTables(env);
+        const row = await env.DB.prepare("SELECT COUNT(*) AS total FROM admins").first();
+        return new Response(JSON.stringify({ total: Number(row?.total || 0) }), {
+          status: 200,
+          headers: { "Content-Type": "application/json; charset=UTF-8", "Cache-Control": "no-store" }
+        });
+      }
+
       if (pathname === "/setup") {
         return handleSetup(request, env);
       }
