@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "globalplay-site",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-26",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "REPLACE_WITH_EXISTING_GLOBALPLAY_D1_NAME",
+      "database_id": "REPLACE_WITH_EXISTING_GLOBALPLAY_D1_ID"
+    }
+  ]
+}
