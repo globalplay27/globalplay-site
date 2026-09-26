@@ -117,6 +117,7 @@ export default {
 ========================= */
 
 async function handleSetup(request, env) {
+  await ensureAuthTables(env);
   const existing = await env.DB.prepare(
     "SELECT COUNT(*) AS total FROM admins"
   ).first();
@@ -194,6 +195,7 @@ async function handleSetup(request, env) {
 ========================= */
 
 async function handleLogin(request, env) {
+  await ensureAuthTables(env);
   const currentAdmin = await getLoggedAdmin(request, env);
   if (currentAdmin) return redirect(request, "/admin");
 
@@ -259,37 +261,48 @@ async function getLoggedAdmin(request, env) {
   const token = getCookie(request, SESSION_COOKIE);
   if (!token) return null;
 
-  const storedToken = await sha256(token);
-  const session = await env.DB.prepare(`
-    SELECT sessions.token, sessions.expires_at, admins.id, admins.email
-    FROM sessions
-    INNER JOIN admins ON admins.id = sessions.admin_id
-    WHERE sessions.token = ?
-    LIMIT 1
-  `)
-    .bind(storedToken)
-    .first();
-
-  if (!session) return null;
-
-  if (new Date(session.expires_at).getTime() < Date.now()) {
-    await env.DB.prepare("DELETE FROM sessions WHERE token = ?")
+  try {
+    await ensureAuthTables(env);
+    const storedToken = await sha256(token);
+    const session = await env.DB.prepare(`
+      SELECT sessions.token, sessions.expires_at, admins.id, admins.email
+      FROM sessions
+      INNER JOIN admins ON admins.id = sessions.admin_id
+      WHERE sessions.token = ?
+      LIMIT 1
+    `)
       .bind(storedToken)
-      .run();
+      .first();
+
+    if (!session) return null;
+
+    if (new Date(session.expires_at).getTime() < Date.now()) {
+      await env.DB.prepare("DELETE FROM sessions WHERE token = ?")
+        .bind(storedToken)
+        .run();
+      return null;
+    }
+
+    return { id: session.id, email: session.email };
+  } catch (error) {
+    console.error("Falha ao validar sessão administrativa:", error);
     return null;
   }
-
-  return { id: session.id, email: session.email };
 }
 
 async function handleLogout(request, env) {
   const token = getCookie(request, SESSION_COOKIE);
 
   if (token) {
-    const storedToken = await sha256(token);
-    await env.DB.prepare("DELETE FROM sessions WHERE token = ?")
-      .bind(storedToken)
-      .run();
+    try {
+      await ensureAuthTables(env);
+      const storedToken = await sha256(token);
+      await env.DB.prepare("DELETE FROM sessions WHERE token = ?")
+        .bind(storedToken)
+        .run();
+    } catch (error) {
+      console.error("Falha ao encerrar sessão administrativa:", error);
+    }
   }
 
   return new Response(null, {
@@ -1277,6 +1290,31 @@ function simpleMessagePage(title, text, href, buttonText, success = false) {
 /* =========================
    BANCO / UTILIDADES
 ========================= */
+
+async function ensureAuthTables(env) {
+  await env.DB.prepare(`
+    CREATE TABLE IF NOT EXISTS admins (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      salt TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `).run();
+
+  await env.DB.prepare(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      token TEXT PRIMARY KEY,
+      admin_id INTEGER NOT NULL,
+      expires_at TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `).run();
+
+  await env.DB.prepare(
+    "CREATE INDEX IF NOT EXISTS idx_sessions_admin_id ON sessions(admin_id)"
+  ).run();
+}
 
 async function loadSettings(env) {
   const result = await env.DB.prepare("SELECT key, value FROM settings").all();
