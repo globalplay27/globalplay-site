@@ -1,0 +1,21 @@
+name: Global Play Site CI
+
+on:
+  push:
+    branches:
+      - main
+      - "seo/**"
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Check Worker syntax
+        run: node --check src/index.js
